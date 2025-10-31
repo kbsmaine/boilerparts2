@@ -15,15 +15,22 @@
     }
     body { background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
 
-    .topbar { background: rgba(15,23,42,.95); border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }
+    /* === Topbar (IDENTICAL TO INDEX) === */
+    header.topbar {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid #1f2937;
+      position: sticky; top: 0; z-index: 100;
+    }
     .nav { display:flex; align-items:center; justify-content:space-between; height:64px; }
     .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); font-weight:900; letter-spacing:.5px; }
-    .brand .logo { height:100px; border-radius:6px; }
+    .brand img { height:100px; border-radius:6px; }           /* match index */
+    .brand .tagline { display:block; font-size:11px; color:#9aa8bb; letter-spacing:.8px; }
     .menu a { color:var(--text); text-decoration:none; margin:0 10px; font-weight:600; }
     .menu a:hover { color: var(--accent); }
-    .cart-button { background: var(--panel); color:var(--text); border:1px solid #243047; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .cart-button { background: #0b1222; color:var(--text); border:1px solid #243047; border-radius:8px; padding:6px 10px; cursor:pointer; }
     .cart-count { background: var(--accent); color:#111; padding:2px 6px; border-radius:999px; font-weight:800; margin-left:4px; }
 
+    /* Page head + filters + grid */
     .page-head { background: linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,0)); border-bottom:1px solid #1f2937; padding:28px 0 10px; }
     .page-head h1 { margin:0 0 6px; font-size:28px; font-weight:900; letter-spacing:.4px; text-transform:uppercase; }
     .page-head p { margin:0; color:var(--muted); }
@@ -63,16 +70,18 @@
   </style>
 </head>
 <body>
+  <!-- Topbar copied to match index exactly -->
   <header class="topbar">
     <div class="container nav">
       <a class="brand" href="index.html">
-        <img src="images/logo.png" alt="Greyson’s Logo" class="logo">
+        <img src="images/logo.png" alt="Greyson’s Logo">
         <span>GREY’S USED BOILER PARTS & SURPLUS</span>
+        <small class="tagline"></small>
       </a>
       <nav class="menu">
         <a href="index.html">Home</a>
         <a href="inventory.html" aria-current="page">Inventory</a>
-        <a href="about.html">About</a>
+        <a href="about.html">About Us</a>
         <a href="contact.html">Contact</a>
       </nav>
       <button class="cart-button" id="openCartBtn" aria-label="Open cart">
@@ -163,10 +172,12 @@
     </div>
   </footer>
 
+  <!-- Keep your cart + PayPal exactly as-is -->
   <script src="js/cart.js"></script>
   <script src="js/payments.js"></script>
 
   <script>
+    // simple filter
     document.querySelectorAll('.chip').forEach(btn=>{
       btn.addEventListener('click',()=>{
         document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
@@ -180,6 +191,7 @@
   </script>
 
   <script>
+    // add-to-cart micro feedback (doesn't touch PayPal/cart logic)
     (function(){
       const cartBtn=document.getElementById('openCartBtn');
       const cartCount=document.getElementById('cartCount');
