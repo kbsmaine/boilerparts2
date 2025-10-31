@@ -139,20 +139,63 @@
       text-align: center;
     }
 
-    /* Cart Animations */
+    /* ✨ Cart Animations (Interactive Add-to-Cart) */
+    .btn.add {
+      position: relative;
+      transition: transform .12s ease, background-color .2s ease, box-shadow .2s ease;
+      will-change: transform;
+    }
+    .btn.add:hover { transform: translateY(-1px); }
+    .btn.add:active { transform: translateY(0); }
     .btn.add.added {
       background-color: #16a34a !important;
       color: #fff !important;
-      transform: scale(1.05);
-      transition: all 0.3s ease;
+      box-shadow: 0 10px 24px rgba(22,163,74,.35);
+    }
+    .btn.add.added::after {
+      content: "✓";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      translate: 0 -50%;
+      font-weight: 800;
+      opacity: .95;
     }
     #cartCount.pulse {
-      animation: pulseCart 0.4s;
+      animation: pulseCart .35s ease;
     }
     @keyframes pulseCart {
       0% { transform: scale(1); }
-      50% { transform: scale(1.4); }
+      50% { transform: scale(1.35); }
       100% { transform: scale(1); }
+    }
+    .add-burst {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(34,197,94,.10);
+      color: #22c55e;
+      backdrop-filter: blur(2px);
+      box-shadow: 0 6px 18px rgba(34,197,94,.25);
+      animation: burstUp .7s ease-out forwards;
+    }
+    @keyframes burstUp {
+      0% { opacity: 0; transform: translateY(8px) scale(.8); }
+      12% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-28px) scale(1.05); }
+    }
+    .cart-button.bump {
+      animation: cartBump .4s ease;
+    }
+    @keyframes cartBump {
+      0% { transform: translateY(0); }
+      25% { transform: translateY(-2px); }
+      50% { transform: translateY(0); }
+      75% { transform: translateY(-1px); }
+      100% { transform: translateY(0); }
     }
   </style>
 </head>
@@ -236,8 +279,48 @@
   </footer>
 
   <!-- ✅ Correct Script Order -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AR1KqgMjoynz7pTqK0twhdeGadhGvtmbNXOhbGeqxil-d_tblaF-xCtrY_1UXmmECd3FDKE6sv6woYQV&components=buttons&currency=USD"></script>
   <script src="js/cart.js?v=modal"></script>
   <script src="js/payments.js?v=modal"></script>
+
+  <!-- ✨ Add-to-Cart Visual Enhancement JS -->
+  <script>
+    (function enhanceAddButtons(){
+      const cartBtn = document.getElementById('openCartBtn');
+      const cartCount = document.getElementById('cartCount');
+
+      function makeBurst(evt, label="+1") {
+        const b = document.createElement('div');
+        b.className = 'add-burst';
+        b.textContent = label;
+        const rect = evt.currentTarget.getBoundingClientRect();
+        const x = evt.clientX || rect.left + rect.width / 2;
+        const y = evt.clientY || rect.top + rect.height / 2;
+        b.style.left = x + 'px';
+        b.style.top = y + 'px';
+        document.body.appendChild(b);
+        b.addEventListener('animationend', () => b.remove());
+      }
+
+      function flashAdded(btn) {
+        btn.classList.add('added');
+        setTimeout(() => btn.classList.remove('added'), 650);
+        if (cartBtn) {
+          cartBtn.classList.add('bump');
+          setTimeout(() => cartBtn.classList.remove('bump'), 400);
+        }
+        if (cartCount) {
+          cartCount.classList.add('pulse');
+          setTimeout(() => cartCount.classList.remove('pulse'), 350);
+        }
+      }
+
+      document.querySelectorAll('.btn.add').forEach(btn => {
+        btn.addEventListener('click', evt => {
+          flashAdded(btn);
+          makeBurst(evt, "+1");
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
