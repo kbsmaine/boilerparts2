@@ -3,66 +3,83 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Greyson’s Used Boiler Parts & Surplus</title>
+  <title>Greyson’s Used Boiler Parts & Surplus — Inventory</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
 
-  <!-- ✨ Add-to-Cart animation styles (safe, standalone) -->
+  <!-- Page-scoped styles (safe, does not touch PayPal) -->
   <style>
-    .btn.add {
-      position: relative;
-      transition: transform .12s ease, background-color .2s ease, box-shadow .2s ease;
-      will-change: transform;
+    :root{
+      --bg:#0f172a; --panel:#0b1222; --card:#1f2937; --stroke:#263242;
+      --text:#e5e7eb; --muted:#9aa3af; --accent:#d97706; --blue:#4f86c6; --ok:#16a34a;
     }
-    .btn.add:hover { transform: translateY(-1px); }
-    .btn.add:active { transform: translateY(0); }
-    .btn.add.added {
-      background-color: #16a34a !important;
-      color: #fff !important;
-      box-shadow: 0 10px 24px rgba(22,163,74,.35);
+    body { background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+
+    /* Header */
+    .topbar { background: rgba(15,23,42,.95); border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }
+    .nav { display:flex; align-items:center; justify-content:space-between; height:64px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); font-weight:900; letter-spacing:.5px; }
+    .brand .logo { height:36px; border-radius:6px; }
+    .menu a { color:var(--text); text-decoration:none; margin:0 10px; font-weight:600; }
+    .menu a:hover { color: var(--accent); }
+    .cart-button { background: var(--panel); color:var(--text); border:1px solid #243047; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .cart-count { background: var(--accent); color:#111; padding:2px 6px; border-radius:999px; font-weight:800; margin-left:4px; }
+
+    /* Page header */
+    .page-head { background: linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,0));
+                 border-bottom:1px solid #1f2937; padding:28px 0 10px; }
+    .page-head h1 { margin:0 0 6px; font-size:28px; font-weight:900; letter-spacing:.4px; text-transform:uppercase; }
+    .page-head p { margin:0; color:var(--muted); }
+
+    /* Filters */
+    .filters { display:flex; flex-wrap:wrap; gap:8px; padding:16px 0 10px; }
+    .chip {
+      border:1px solid var(--stroke); background:#111827; color:var(--text);
+      padding:6px 12px; border-radius:999px; font-weight:700; letter-spacing:.3px; cursor:pointer;
     }
-    .btn.add.added::after {
-      content: "✓";
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      translate: 0 -50%;
-      font-weight: 800;
-      opacity: .95;
+    .chip.active { background:#1f2937; box-shadow: inset 0 0 0 2px #31425a; }
+
+    /* Product grid */
+    .products { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+    .card {
+      background: var(--card); border:1px solid var(--stroke); border-radius:14px; overflow:hidden;
+      display:flex; flex-direction:column; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
-    #cartCount.pulse { animation: pulseCart .35s ease; }
-    @keyframes pulseCart {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.35); }
-      100% { transform: scale(1); }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.25); border-color:#32507b; }
+
+    .thumb {
+      position:relative; aspect-ratio: 4/3; background:#0b1222; overflow:hidden;
     }
-    .cart-button.bump { animation: cartBump .4s ease; }
-    @keyframes cartBump {
-      0% { transform: translateY(0); }
-      25% { transform: translateY(-2px); }
-      50% { transform: translateY(0); }
-      75% { transform: translateY(-1px); }
-      100% { transform: translateY(0); }
+    .thumb img {
+      width:100%; height:100%; object-fit:cover; display:block; filter: brightness(.95);
     }
-    .add-burst {
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      font-weight: 800;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(34,197,94,.10);
-      color: #22c55e;
-      backdrop-filter: blur(2px);
-      box-shadow: 0 6px 18px rgba(34,197,94,.25);
-      animation: burstUp .7s ease-out forwards;
+    .badge {
+      position:absolute; left:10px; top:10px;
+      background: rgba(217,119,6,.14); color:#ffca7a;
+      border:1px solid rgba(217,119,6,.35); font-weight:800; font-size:12px;
+      padding:4px 8px; border-radius:999px; letter-spacing:.3px; backdrop-filter: blur(2px);
     }
-    @keyframes burstUp {
-      0% { opacity: 0; transform: translateY(8px) scale(.8); }
-      12% { opacity: 1; }
-      100% { opacity: 0; transform: translateY(-28px) scale(1.05); }
+
+    .inner { padding:14px; display:flex; flex-direction:column; gap:8px; }
+    .title { font-size:16px; font-weight:800; margin:0; text-transform:uppercase; letter-spacing:.3px; }
+    .muted { color: var(--muted); font-size:14px; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .price { font-weight:900; letter-spacing:.4px; }
+
+    .btn {
+      background:#0b1222; color:var(--text); border:1px solid #2b3b55; border-radius:10px;
+      padding:10px 12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; cursor:pointer;
+      transition: filter .15s ease, transform .12s ease, background-color .15s ease;
     }
+    .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn.add.added { background-color: var(--ok) !important; color:#fff !important; box-shadow: 0 10px 24px rgba(22,163,74,.35); }
+
+    /* Footer */
+    .footer { border-top:1px solid #1f2937; background:#0b1222; color:var(--muted); text-align:center; padding:26px 0; }
+
+    /* Small helper */
+    .sr { position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden; }
   </style>
 </head>
 <body>
@@ -74,7 +91,7 @@
       </a>
       <nav class="menu">
         <a href="index.html">Home</a>
-        <a href="inventory.html">Inventory</a>
+        <a href="inventory.html" aria-current="page">Inventory</a>
         <a href="about.html">About</a>
         <a href="contact.html">Contact</a>
       </nav>
@@ -85,42 +102,109 @@
   </header>
 
   <main class="content">
+    <section class="page-head">
+      <div class="container">
+        <h1>Inventory</h1>
+        <p>Real parts. Real condition notes. If you don’t see it, <a href="contact.html">reach out</a> — we’ll help you find it.</p>
+      </div>
+    </section>
+
     <section class="container">
-      <h1>Inventory</h1>
-
-      <div class="filters">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="Burners">Burners</button>
-        <button class="chip" data-filter="Oil Tank Parts">Oil Tank Parts</button>
-        <button class="chip" data-filter="Boiler Components">Boiler Components</button>
+      <!-- Filters -->
+      <div class="filters" role="tablist" aria-label="Filter categories">
+        <button class="chip active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button class="chip" data-filter="Burners" role="tab" aria-selected="false">Burners</button>
+        <button class="chip" data-filter="Oil Tank Parts" role="tab" aria-selected="false">Oil Tank Parts</button>
+        <button class="chip" data-filter="Boiler Components" role="tab" aria-selected="false">Boiler Components</button>
       </div>
 
-      <div class="grid products" id="productGrid">
+      <!-- Product Grid -->
+      <div class="products" id="productGrid">
+        <!-- Product 1 -->
         <div class="product card" data-category="Burners">
-          <h3>Riello Burner RDB2.2</h3>
-          <p class="muted">Pulled & cleaned. 90-day guarantee.</p>
-          <div class="price">$350.00</div>
-          <button class="btn add" data-id="rdb22" data-name="Riello Burner RDB2.2" data-price="350.00">Add to Cart</button>
+          <div class="thumb">
+            <img loading="lazy" src="images/products/riello_rdb22.jpg"
+                 onerror="this.src='images/products/placeholder-burner.jpg';"
+                 alt="Riello Burner RDB2.2">
+            <span class="badge">Burner</span>
+          </div>
+          <div class="inner">
+            <h3 class="title">Riello Burner RDB2.2</h3>
+            <p class="muted">Pulled &amp; cleaned. 90-day guarantee.</p>
+            <div class="row">
+              <div class="price">$350.00</div>
+              <button class="btn add"
+                      data-id="rdb22"
+                      data-name="Riello Burner RDB2.2"
+                      data-price="350.00">Add to Cart</button>
+            </div>
+          </div>
         </div>
+
+        <!-- Product 2 -->
         <div class="product card" data-category="Oil Tank Parts">
-          <h3>Suntec Pump A2VA7116</h3>
-          <p class="muted">Used. Tested — no leaks.</p>
-          <div class="price">$95.00</div>
-          <button class="btn add" data-id="a2va7116" data-name="Suntec Pump A2VA7116" data-price="95.00">Add to Cart</button>
+          <div class="thumb">
+            <img loading="lazy" src="images/products/suntec_a2va7116.jpg"
+                 onerror="this.src='images/products/placeholder-tank.jpg';"
+                 alt="Suntec Pump A2VA7116">
+            <span class="badge">Oil Tank</span>
+          </div>
+          <div class="inner">
+            <h3 class="title">Suntec Pump A2VA7116</h3>
+            <p class="muted">Used. Tested — no leaks.</p>
+            <div class="row">
+              <div class="price">$95.00</div>
+              <button class="btn add"
+                      data-id="a2va7116"
+                      data-name="Suntec Pump A2VA7116"
+                      data-price="95.00">Add to Cart</button>
+            </div>
+          </div>
         </div>
+
+        <!-- Product 3 -->
         <div class="product card" data-category="Boiler Components">
-          <h3>Honeywell Aquastat L8148E</h3>
-          <p class="muted">Cleaned contacts, includes cover.</p>
-          <div class="price">$120.00</div>
-          <button class="btn add" data-id="l8148e" data-name="Honeywell Aquastat L8148E" data-price="120.00">Add to Cart</button>
+          <div class="thumb">
+            <img loading="lazy" src="images/products/honeywell_l8148e.jpg"
+                 onerror="this.src='images/products/placeholder-component.jpg';"
+                 alt="Honeywell Aquastat L8148E">
+            <span class="badge">Component</span>
+          </div>
+          <div class="inner">
+            <h3 class="title">Honeywell Aquastat L8148E</h3>
+            <p class="muted">Cleaned contacts, includes cover.</p>
+            <div class="row">
+              <div class="price">$120.00</div>
+              <button class="btn add"
+                      data-id="l8148e"
+                      data-name="Honeywell Aquastat L8148E"
+                      data-price="120.00">Add to Cart</button>
+            </div>
+          </div>
         </div>
+
+        <!-- Product 4 -->
         <div class="product card" data-category="Burners">
-          <h3>Beckett Burner AFG</h3>
-          <p class="muted">Rebuilt — new nozzle & electrodes.</p>
-          <div class="price">$275.00</div>
-          <button class="btn add" data-id="afg" data-name="Beckett Burner AFG" data-price="275.00">Add to Cart</button>
+          <div class="thumb">
+            <img loading="lazy" src="images/products/beckett_afg.jpg"
+                 onerror="this.src='images/products/placeholder-burner.jpg';"
+                 alt="Beckett Burner AFG">
+            <span class="badge">Burner</span>
+          </div>
+          <div class="inner">
+            <h3 class="title">Beckett Burner AFG</h3>
+            <p class="muted">Rebuilt — new nozzle &amp; electrodes.</p>
+            <div class="row">
+              <div class="price">$275.00</div>
+              <button class="btn add"
+                      data-id="afg"
+                      data-name="Beckett Burner AFG"
+                      data-price="275.00">Add to Cart</button>
+            </div>
+          </div>
         </div>
       </div>
+      <p class="sr" aria-live="polite" id="filterStatus">Showing all items</p>
     </section>
   </main>
 
@@ -130,62 +214,46 @@
     </div>
   </footer>
 
-  <!-- Keep your existing site logic -->
+  <!-- Scripts (unchanged to preserve cart/PayPal stability) -->
   <script src="js/cart.js"></script>
   <script src="js/payments.js"></script>
 
-  <!-- Filters -->
+  <!-- Filters (client-side only) -->
   <script>
-    document.querySelectorAll('.chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const f = btn.dataset.filter;
-        document.querySelectorAll('.product').forEach(p => {
-          p.style.display = (f==='all' || p.dataset.category===f) ? '' : 'none';
+    (function () {
+      const chips = document.querySelectorAll('.chip');
+      const prods = document.querySelectorAll('.product');
+      const status = document.getElementById('filterStatus');
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          chips.forEach(c => { c.classList.remove('active'); c.setAttribute('aria-selected','false'); });
+          chip.classList.add('active'); chip.setAttribute('aria-selected','true');
+          const f = chip.dataset.filter;
+          let shown = 0;
+          prods.forEach(p => {
+            const show = (f === 'all' || p.dataset.category === f);
+            p.style.display = show ? '' : 'none';
+            if (show) shown++;
+          });
+          if (status) status.textContent = `Showing ${shown} ${shown === 1 ? 'item' : 'items'} in “${f}”`;
         });
       });
-    });
+    })();
   </script>
 
-  <!-- ✨ Add-to-Cart visual enhancements (no cart logic changes) -->
+  <!-- Tiny “Add to Cart” visual feedback (no logic changes) -->
   <script>
-    (function enhanceAddButtons(){
+    (function addVisuals(){
       const cartBtn = document.getElementById('openCartBtn');
       const cartCount = document.getElementById('cartCount');
-
-      function makeBurst(evt, label="+1") {
-        const b = document.createElement('div');
-        b.className = 'add-burst';
-        b.textContent = label;
-        const rect = evt.currentTarget.getBoundingClientRect();
-        const x = (evt.clientX ?? rect.left + rect.width / 2);
-        const y = (evt.clientY ?? rect.top + rect.height / 2);
-        b.style.left = x + 'px';
-        b.style.top = y + 'px';
-        document.body.appendChild(b);
-        b.addEventListener('animationend', () => b.remove());
-      }
-
-      function flashAdded(btn) {
+      function flash(btn){
         btn.classList.add('added');
-        setTimeout(() => btn.classList.remove('added'), 650);
-        if (cartBtn) {
-          cartBtn.classList.add('bump');
-          setTimeout(() => cartBtn.classList.remove('bump'), 400);
-        }
-        if (cartCount) {
-          cartCount.classList.add('pulse');
-          setTimeout(() => cartCount.classList.remove('pulse'), 350);
-        }
+        setTimeout(()=>btn.classList.remove('added'), 600);
+        if(cartBtn){ cartBtn.style.transform='translateY(-1px)'; setTimeout(()=>cartBtn.style.transform='', 160); }
+        if(cartCount){ cartCount.style.transform='scale(1.25)'; setTimeout(()=>cartCount.style.transform='', 160); }
       }
-
-      document.querySelectorAll('.btn.add').forEach(btn => {
-        btn.addEventListener('click', evt => {
-          // purely visual — your cart.js handles the actual add
-          flashAdded(btn);
-          makeBurst(evt, "+1");
-        });
+      document.querySelectorAll('.btn.add').forEach(b=>{
+        b.addEventListener('click', ()=> flash(b));
       });
     })();
   </script>
