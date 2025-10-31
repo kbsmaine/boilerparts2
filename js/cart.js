@@ -1,187 +1,155 @@
-/* =======================
-   Modal Cart (shared sitewide)
-   ======================= */
+
+// cart.js — modal cart with + / - controls and a single PayPal container
 console.log("✅ Modal Cart Loaded");
 
-(function () {
-  const STORAGE_KEY = "cart";
-  const MODAL_ID   = "cartModal";
-  const INNER_ID   = "cartModalInner";
-  const LIST_ID    = "cartItems";
-  const TOTAL_ID   = "cartTotal";
-  const COUNT_ID   = "cartCount";
-  const OPEN_BTN_ID = "openCartBtn";
+const CART_KEY = "kbs_cart_v1";
 
-  // ---------- storage ----------
-  function loadCart() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-    catch(e) { return []; }
-  }
-  function saveCart(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-  function getTotal(items) { return items.reduce((s,i)=>s + Number(i.price) * Number(i.qty), 0); }
-  function getCount(items) { return items.reduce((s,i)=>s + Number(i.qty), 0); }
+function getCart() {
+  try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch { return []; }
+}
+function setCart(items) {
+  localStorage.setItem(CART_KEY, JSON.stringify(items));
+  updateCartCount();
+}
+function findIndex(id) { return getCart().findIndex(i => i.id === id); }
 
-  // ---------- dom helpers ----------
-  const $ = sel => document.querySelector(sel);
-  function setCount(n) {
-    const el = document.getElementById(COUNT_ID);
-    if (el) {
-      el.textContent = n;
-      el.classList.remove("pulse");
-      // trigger pulse
-      void el.offsetWidth; 
-      el.classList.add("pulse");
-      setTimeout(()=>el.classList.remove("pulse"), 400);
-    }
-  }
+function addToCart(item) {
+  const cart = getCart();
+  const idx = cart.findIndex(i => i.id === item.id);
+  if (idx >= 0) cart[idx].qty += 1;
+  else cart.push({ ...item, qty: 1 });
+  setCart(cart);
+}
 
-  // ---------- modal ----------
-  function ensureModal() {
-    let modal = document.getElementById(MODAL_ID);
-    if (!modal) {
-      modal = document.createElement("div");
-      modal.id = MODAL_ID;
-      modal.style.cssText = "position:fixed; inset:0; display:none; z-index:1000; align-items:center; justify-content:center; background:rgba(2,6,23,.6);";
-      modal.innerHTML = `
-        <div id="${INNER_ID}" style="width:min(720px,92vw); background:#0b1220; color:#fff; border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.45); border:1px solid #1e293b;">
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid #1f2937;">
-            <h2 style="margin:0;font:600 18px/1.2 Inter,system-ui,sans-serif;">Your Cart</h2>
-            <button id="closeCart" aria-label="Close cart" style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:8px 10px;cursor:pointer">✕</button>
-          </div>
-          <div style="max-height:46vh; overflow:auto">
-            <div id="${LIST_ID}" style="padding:10px 16px"></div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border-top:1px solid #1f2937;">
-            <div style="font:600 16px Inter,system-ui,sans-serif;">Total: <span id="${TOTAL_ID}">$0.00</span></div>
-            <div id="paypal-button-row" style="display:flex; gap:8px; align-items:center">
-              <div id="pp-btn-paypal"></div>
-              <div id="pp-btn-card"></div>
-            </div>
-          </div>
+function removeFromCart(id) {
+  const cart = getCart().filter(i => i.id !== id);
+  setCart(cart);
+  renderCartLines(); // keep modal updated if open
+}
+
+function changeQty(id, delta) {
+  const cart = getCart();
+  const idx = cart.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  cart[idx].qty = Math.max(1, cart[idx].qty + delta);
+  setCart(cart);
+  renderCartLines();
+}
+
+function getCartTotal() {
+  const cart = getCart();
+  return cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+}
+
+function updateCartCount() {
+  const count = getCart().reduce((s, i) => s + i.qty, 0);
+  const el = document.getElementById("cartCount");
+  if (el) el.textContent = count;
+}
+
+// attach buttons on product grid
+document.querySelectorAll(".btn.add").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const item = {
+      id: btn.dataset.id,
+      name: btn.dataset.name,
+      price: parseFloat(btn.dataset.price || "0"),
+    };
+    addToCart(item);
+    // small visual feedback
+    btn.classList.add("added");
+    setTimeout(() => btn.classList.remove("added"), 250);
+  });
+});
+
+// modal
+let modalEl, linesEl, totalEl, closeBtn;
+function ensureModal() {
+  if (modalEl) return modalEl;
+  const wrap = document.createElement("div");
+  wrap.id = "cartModal";
+  wrap.innerHTML = `
+  <div class="modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:9998"></div>
+  <div class="modal" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;display:none;max-width:720px;width:92%">
+    <div class="card" style="padding:16px 18px 20px; background:rgba(21,31,53,.92); border-radius:14px; box-shadow:0 10px 40px rgba(0,0,0,.4)">
+      <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <h2 style="margin:0">Your Cart</h2>
+        <button id="cartCloseBtn" aria-label="Close" style="background:transparent;border:0;color:#fff;font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div id="cartLines" class="cart-lines" style="display:flex;flex-direction:column;gap:10px;max-height:42vh;overflow:auto;border-top:1px solid rgba(255,255,255,.08);padding-top:12px"></div>
+      <div style="margin-top:12px;font-weight:700">Total: <span id="cartTotal">$0.00</span></div>
+
+      <!-- Single PayPal stack -->
+      <div id="paypal-button-row" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:stretch">
+        <div id="pp-btn-paypal"></div>
+      </div>
+      <div id="paypalPoweredBy" style="text-align:center;margin-top:6px;opacity:.7;font-size:.85rem">Powered by <b>PayPal</b></div>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  modalEl = wrap.querySelector(".modal");
+  linesEl = wrap.querySelector("#cartLines");
+  totalEl = wrap.querySelector("#cartTotal");
+  closeBtn = wrap.querySelector("#cartCloseBtn");
+  wrap.querySelector(".modal-backdrop").addEventListener("click", hideCart);
+  closeBtn.addEventListener("click", hideCart);
+  return modalEl;
+}
+
+function renderCartLines() {
+  ensureModal();
+  const cart = getCart();
+  linesEl.innerHTML = "";
+  if (!cart.length) {
+    linesEl.innerHTML = `<p class="muted" style="margin:8px 2px">Your cart is empty.</p>`;
+  } else {
+    cart.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "cart-row";
+      row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px";
+      row.innerHTML = `
+        <div style="display:flex;flex-direction:column">
+          <b>${item.name}</b>
+          <span class="muted">$${item.price.toFixed(2)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="qty-btn dec" aria-label="Decrease" style="min-width:34px;height:34px;border-radius:8px;border:0;background:#0f172a;color:#fff;font-weight:800">-</button>
+          <span class="qty" style="min-width:24px;text-align:center;font-weight:700">${item.qty}</span>
+          <button class="qty-btn inc" aria-label="Increase" style="min-width:34px;height:34px;border-radius:8px;border:0;background:#0f172a;color:#fff;font-weight:800">+</button>
+          <button class="remove" aria-label="Remove" style="min-width:34px;height:34px;border-radius:8px;border:0;background:#7f1d1d;color:#fff;font-weight:800">×</button>
         </div>`;
-      document.body.appendChild(modal);
-
-      // Close handlers
-      modal.addEventListener("click", (e) => {
-        if (e.target.id === MODAL_ID) modal.style.display = "none";
-      });
-      modal.querySelector("#closeCart").addEventListener("click", () => modal.style.display = "none");
-    }
-    return modal;
-  }
-
-  function openModal() {
-    ensureModal().style.display = "flex";
-    // Ask payments to (re)render with current total
-    const sum = getTotal(loadCart());
-    document.dispatchEvent(new CustomEvent("cart:open", { detail: { total: sum.toFixed(2) } }));
-  }
-
-  // ---------- rendering ----------
-  function render() {
-    const items = loadCart();
-    const list = document.getElementById(LIST_ID);
-    if (!list) return;
-    list.innerHTML = "";
-
-    if (items.length === 0) {
-      list.innerHTML = `<div style="color:#cbd5e1;padding:10px 4px">Your cart is empty.</div>`;
-    } else {
-      items.forEach((it, idx) => {
-        const row = document.createElement("div");
-        row.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:10px 4px; border-bottom:1px dashed #263143;";
-        row.innerHTML = `
-          <div style="display:flex; flex-direction:column; gap:2px; min-width:0">
-            <div style="font:600 14px Inter,system-ui,sans-serif; color:#e5e7eb; white-space:nowrap; text-overflow:ellipsis; overflow:hidden">${it.name}</div>
-            <div style="color:#94a3b8; font:12px Inter,system-ui,sans-serif">$${Number(it.price).toFixed(2)} ea</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px">
-            <button class="qty minus" data-idx="${idx}" aria-label="Decrease quantity" style="width:28px;height:28px;border-radius:8px;border:1px solid #374151;background:#111827;color:#e5e7eb;cursor:pointer">−</button>
-            <div style="min-width:28px; text-align:center; font:600 14px Inter,system-ui,sans-serif">${it.qty}</div>
-            <button class="qty plus" data-idx="${idx}" aria-label="Increase quantity" style="width:28px;height:28px;border-radius:8px;border:1px solid #374151;background:#111827;color:#e5e7eb;cursor:pointer">+</button>
-            <button class="remove" data-idx="${idx}" aria-label="Remove item" style="margin-left:6px;border-radius:8px;border:1px solid #7f1d1d;background:#1f2937;color:#fecaca;padding:6px 8px;cursor:pointer">Remove</button>
-          </div>`;
-        list.appendChild(row);
-      });
-    }
-
-    // total
-    const totalEl = document.getElementById(TOTAL_ID);
-    if (totalEl) totalEl.textContent = `$${getTotal(items).toFixed(2)}`;
-    // count
-    setCount(getCount(items));
-
-    // re-bind qty controls
-    list.querySelectorAll(".qty.plus").forEach(btn => btn.addEventListener("click", (e) => {
-      const i = Number(e.currentTarget.dataset.idx);
-      const data = loadCart();
-      data[i].qty += 1;
-      saveCart(data);
-      render();
-      document.dispatchEvent(new CustomEvent("cart:changed", { detail: { total: getTotal(data).toFixed(2) } }));
-    }));
-
-    list.querySelectorAll(".qty.minus").forEach(btn => btn.addEventListener("click", (e) => {
-      const i = Number(e.currentTarget.dataset.idx);
-      const data = loadCart();
-      data[i].qty = Math.max(0, data[i].qty - 1);
-      if (data[i].qty === 0) data.splice(i,1);
-      saveCart(data);
-      render();
-      document.dispatchEvent(new CustomEvent("cart:changed", { detail: { total: getTotal(data).toFixed(2) } }));
-    }));
-
-    list.querySelectorAll(".remove").forEach(btn => btn.addEventListener("click", (e) => {
-      const i = Number(e.currentTarget.dataset.idx);
-      const data = loadCart();
-      data.splice(i,1);
-      saveCart(data);
-      render();
-      document.dispatchEvent(new CustomEvent("cart:changed", { detail: { total: getTotal(data).toFixed(2) } }));
-    }));
-  }
-
-  // ---------- add-to-cart buttons ----------
-  function bindAddButtons() {
-    document.querySelectorAll(".btn.add").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const id = btn.dataset.id || btn.getAttribute("data-id");
-        const name = btn.dataset.name || btn.getAttribute("data-name") || "Item";
-        const price = parseFloat(btn.dataset.price || btn.getAttribute("data-price") || "0") || 0;
-        let items = loadCart();
-        const found = items.find(i => i.id === id);
-        if (found) found.qty += 1;
-        else items.push({ id, name, price, qty: 1 });
-        saveCart(items);
-        setCount(getCount(items));
-        btn.classList.add("added");
-        setTimeout(()=>btn.classList.remove("added"), 320);
-        document.dispatchEvent(new CustomEvent("cart:changed", { detail: { total: getTotal(items).toFixed(2) } }));
-      });
+      row.querySelector(".dec").addEventListener("click", () => changeQty(item.id, -1));
+      row.querySelector(".inc").addEventListener("click", () => changeQty(item.id, +1));
+      row.querySelector(".remove").addEventListener("click", () => removeFromCart(item.id));
+      linesEl.appendChild(row);
     });
   }
+  totalEl.textContent = `$${getCartTotal().toFixed(2)}`;
 
-  // ---------- open cart button ----------
-  function bindOpen() {
-    const open = document.getElementById(OPEN_BTN_ID);
-    if (open) open.addEventListener("click", openModal);
-  }
+  // let payments.js know the modal exists & should (re)render
+  const ev = new CustomEvent("cart:updated", { detail: { total: getCartTotal() } });
+  window.dispatchEvent(ev);
+}
 
-  // init
+function showCart() {
   ensureModal();
-  bindAddButtons();
-  bindOpen();
-  render();
+  document.querySelector("#cartModal .modal").style.display = "block";
+  document.querySelector("#cartModal .modal-backdrop").style.display = "block";
+  renderCartLines();
+  const ev = new Event("cart:open"); window.dispatchEvent(ev);
+}
+function hideCart() {
+  document.querySelector("#cartModal .modal").style.display = "none";
+  document.querySelector("#cartModal .modal-backdrop").style.display = "none";
+  const ev = new Event("cart:close"); window.dispatchEvent(ev);
+}
 
-  // expose small API for payments.js
-  window.CartAPI = {
-    getItems: loadCart,
-    getTotal: function(){ return getTotal(loadCart()); },
-    onChange: function(cb){
-      document.addEventListener("cart:changed", (e)=> cb(e.detail.total));
-    },
-    onOpen: function(cb){
-      document.addEventListener("cart:open", (e)=> cb(e.detail.total));
-    }
-  };
-})();
+// open cart button
+const openBtn = document.getElementById("openCartBtn");
+if (openBtn) openBtn.addEventListener("click", showCart);
+
+// initialize counter on load
+updateCartCount();
+
+// expose minimal API for payments.js
+window.CartAPI = { getCart, getCartTotal };
